@@ -91,41 +91,57 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         });
 
-        // --- 🛡️ ADMİN SİSTEMİ (Firestore-dan yoxlama ilə) ---
+        // --- 🛡️ ADMİN SİSTEMİ (GitHub-da Şifrə Görünmür) ---
         window.openAdmin = async function() {
             const enteredPass = prompt("Admin Şifrəsi:");
             if (!enteredPass) return;
             try {
+                // Şifrəni Firestore-dan çəkirik
                 const adminSnap = await getDoc(doc(db, "m1y_settings", "admin_config"));
                 if (adminSnap.exists() && enteredPass === adminSnap.data().pass) {
                     document.getElementById('adminPanel').style.display = 'flex';
                     loadAdminData();
-                } else { alert("Giriş rədd edildi!"); }
+                } else { alert("Şifrə səhvdir!"); }
             } catch (e) { alert("Xəta: " + e.message); }
         }
 
         function loadAdminData() {
+            // Elanların siyahısı
             onSnapshot(qJobs, (snap) => {
                 const list = document.getElementById('adminList');
-                list.innerHTML = "<h4 class='text-[10px] text-cyan-500 font-black mb-2 uppercase'>Elanlar</h4>";
+                list.innerHTML = "<h4 class='text-[10px] text-cyan-500 font-black mb-2 uppercase border-b border-white/10 pb-1'>Elanlar</h4>";
                 snap.forEach(d => {
-                    list.innerHTML += `<div class="flex justify-between items-center bg-black/50 p-3 rounded-xl mb-2 border border-white/5"><span class="text-[10px] text-white truncate w-32">${d.data().title}</span><button onclick="deleteJob('${d.id}')" class="text-red-500 font-bold text-[10px]">SİL</button></div>`;
+                    list.innerHTML += `<div class="flex justify-between items-center bg-black/50 p-3 rounded-xl mb-2 border border-white/5"><span class="text-[10px] text-white truncate w-32">${d.data().title}</span><button onclick="deleteJob('${d.id}')" class="text-red-500 font-bold text-[10px] hover:text-red-400 transition">SİL</button></div>`;
                 });
             });
+            // Chat Mesajlarının İdarəedilməsi
             onValue(rQuery(chatRef, limitToLast(20)), (snap) => {
                 const chatList = document.getElementById('adminChatList');
-                chatList.innerHTML = "<h4 class='text-[10px] text-purple-500 font-black mt-4 mb-2 uppercase'>Chat İdarəetmə</h4>";
+                chatList.innerHTML = "<h4 class='text-[10px] text-purple-500 font-black mt-4 mb-2 uppercase border-b border-white/10 pb-1'>Chat Moderasiyası</h4>";
                 snap.forEach(child => {
-                    chatList.innerHTML += `<div class="flex justify-between items-center bg-black/50 p-3 rounded-xl mb-1 border border-white/5"><span class="text-[9px] text-zinc-400 truncate w-32">${child.val().message}</span><button onclick="deleteMessage('${child.key}')" class="text-red-500 font-bold text-[9px]">SİL</button></div>`;
+                    const data = child.val();
+                    chatList.innerHTML += `
+                        <div class="flex justify-between items-center bg-black/50 p-3 rounded-xl mb-1 border border-white/5">
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-purple-400 font-bold">${data.username}</span>
+                                <span class="text-[9px] text-zinc-400 truncate w-32">${data.message}</span>
+                            </div>
+                            <button onclick="deleteMessage('${child.key}')" class="text-red-500 font-bold text-[9px] hover:text-red-400 transition">SİL</button>
+                        </div>`;
                 });
             });
         }
 
-        window.deleteMessage = async function(id) { if(confirm("Mesaj silinsin?")) await remove(ref(rdb, `m1y_global_chat/${id}`)); }
-        window.deleteJob = async function(id) { if(confirm("Elan silinsin?")) await deleteDoc(doc(db, "m1y_jobs", id)); }
+        window.deleteMessage = async function(id) { if(confirm("Bu mesajı silmək istəyirsiniz?")) await remove(ref(rdb, `m1y_global_chat/${id}`)); }
+        window.deleteJob = async function(id) { if(confirm("Bu elanı silmək istəyirsiniz?")) await deleteDoc(doc(db, "m1y_jobs", id)); }
+        
         window.makeVIP = async function() {
             const vipID = document.getElementById('vipIDInput').value.trim();
-            if(vipID) { await setDoc(doc(db, "m1y_vips", vipID), { active: true }); alert("VİP Edildi!"); }
+            if(vipID) { 
+                await setDoc(doc(db, "m1y_vips", vipID), { active: true }); 
+                alert("İstifadəçi " + vipID + " artıq VİP-dir!"); 
+                document.getElementById('vipIDInput').value = "";
+            }
         }
 
         window.submitM1Y = async function() {
@@ -145,13 +161,18 @@
             setTimeout(() => { clickCount = 0; }, 2000);
         }
 
-        document.getElementById('displayMyID').innerText = myID;
+        // ID-ni dərhal göstər (DOM yükləndikdən sonra)
+        window.addEventListener('DOMContentLoaded', () => {
+             document.getElementById('displayMyID').innerText = myID;
+        });
     </script>
 
     <style>
         body { background: #050505; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
         .cyber-bg { background: radial-gradient(circle at top right, #0a0a20, #050505); position: fixed; inset: 0; z-index: -1; }
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; backdrop-filter: blur(10px); align-items: center; justify-content: center; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; backdrop-filter: blur(15px); align-items: center; justify-content: center; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #151515; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -160,57 +181,70 @@
     <nav class="border-b border-white/5 py-6 bg-black/50 backdrop-blur-xl sticky top-0 z-50">
         <div class="container mx-auto px-6 flex justify-between items-center">
             <h1 class="text-2xl font-black italic tracking-tighter text-cyan-500">M1Y</h1>
-            <button onclick="document.getElementById('jobModal').style.display='flex'" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-[10px] uppercase">Elan Paylaş</button>
+            <button onclick="document.getElementById('jobModal').style.display='flex'" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-cyan-500 hover:text-white transition">Elan Paylaş</button>
         </div>
     </nav>
 
     <section class="container mx-auto px-6 py-12">
-        <div class="max-w-xl mx-auto mb-12"><input type="text" id="searchInp" onkeyup="search()" placeholder="Axtarış..." class="w-full p-5 bg-zinc-900 rounded-2xl border border-white/5 outline-none focus:border-cyan-500"></div>
+        <div class="max-w-xl mx-auto mb-12"><input type="text" id="searchInp" onkeyup="search()" placeholder="Xidmət axtar..." class="w-full p-5 bg-zinc-900 rounded-2xl border border-white/5 outline-none focus:border-cyan-500 transition shadow-2xl"></div>
         <div id="jobGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
     </section>
 
     <section class="max-w-2xl mx-auto px-6 mb-20">
-        <div class="bg-zinc-900/50 border border-white/10 rounded-[2rem] overflow-hidden">
-            <div id="chatMessages" class="h-80 p-6 overflow-y-auto"></div>
-            <div class="p-4 bg-black/40 flex gap-2">
-                <input id="chatUser" type="text" placeholder="Ad" class="w-20 bg-zinc-800 p-3 rounded-xl border border-white/5 text-[10px]">
-                <input id="chatInput" type="text" placeholder="Mesaj..." class="flex-1 bg-zinc-800 p-3 rounded-xl border border-white/5 text-[10px]">
-                <button onclick="sendChatMessage()" class="bg-cyan-600 px-5 rounded-xl text-[10px] font-bold">GÖNDƏR</button>
+        <div class="bg-zinc-900/50 border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <div id="chatMessages" class="h-80 p-6 overflow-y-auto bg-black/20"></div>
+            <div class="p-4 bg-black/40 flex gap-2 border-t border-white/5">
+                <input id="chatUser" type="text" placeholder="Ad" class="w-24 bg-zinc-800 p-3 rounded-xl border border-white/5 text-[10px] outline-none focus:border-cyan-500">
+                <input id="chatInput" type="text" placeholder="Mesaj yazın..." class="flex-1 bg-zinc-800 p-3 rounded-xl border border-white/5 text-[10px] outline-none focus:border-cyan-500">
+                <button onclick="sendChatMessage()" class="bg-cyan-600 px-6 rounded-xl text-[10px] font-bold hover:bg-cyan-500 transition uppercase">Göndər</button>
             </div>
         </div>
     </section>
 
     <div id="adminPanel" class="modal">
-        <div class="bg-zinc-900 p-8 rounded-[2rem] w-full max-w-sm border border-white/10">
-            <div class="flex justify-between mb-6"><h2 class="text-cyan-400 font-bold uppercase text-xs">Admin Terminal</h2><button onclick="document.getElementById('adminPanel').style.display='none'">✕</button></div>
-            <div class="mb-4"><input type="text" id="vipIDInput" placeholder="Müştəri ID" class="w-full p-3 bg-black/50 rounded-xl border border-white/5 text-[10px] mb-2"><button onclick="makeVIP()" class="w-full bg-cyan-500 text-black py-2 rounded-xl text-[10px] font-bold">VİP AKTİV ET</button></div>
-            <div id="adminList" class="max-h-40 overflow-y-auto mb-4"></div>
-            <div id="adminChatList" class="max-h-40 overflow-y-auto"></div>
+        <div class="bg-zinc-900 p-8 rounded-[2.5rem] w-full max-w-md border border-white/10 shadow-2xl shadow-cyan-500/10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-cyan-400 font-black uppercase text-xs tracking-widest">Admin Terminal</h2>
+                <button onclick="document.getElementById('adminPanel').style.display='none'" class="text-zinc-500 hover:text-white transition">✕</button>
+            </div>
+            
+            <div class="mb-6 bg-black/30 p-4 rounded-2xl border border-white/5 text-center">
+                <p class="text-[9px] text-zinc-500 mb-2 uppercase">VİP Aktivator</p>
+                <div class="flex gap-2">
+                    <input type="text" id="vipIDInput" placeholder="İstifadəçi ID-sini daxil edin" class="flex-1 p-3 bg-black/50 rounded-xl border border-white/5 text-[10px] outline-none focus:border-cyan-500">
+                    <button onclick="makeVIP()" class="bg-cyan-500 text-black px-4 rounded-xl text-[10px] font-bold uppercase">OK</button>
+                </div>
+            </div>
+
+            <div class="max-h-72 overflow-y-auto pr-2 custom-scrollbar">
+                <div id="adminList"></div>
+                <div id="adminChatList"></div>
+            </div>
         </div>
     </div>
 
     <div id="jobModal" class="modal">
         <div class="bg-zinc-900 p-8 rounded-[2.5rem] w-full max-w-md border border-white/10">
             <h2 class="text-xl font-black mb-6 text-cyan-500 italic uppercase">Yeni Elan</h2>
-            <div id="limitError" class="hidden mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] text-red-400">Limit dolub! VİP üçün WhatsApp-a yazın.</div>
+            <div id="limitError" class="hidden mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] text-red-400 font-bold">Gündəlik limit dolub! Limitsiz paylaşım üçün VİP olun.</div>
             <div class="space-y-3">
-                <input type="text" id="mName" placeholder="Adınız" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm">
-                <input type="text" id="mTitle" placeholder="İş başlığı" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm">
+                <input type="text" id="mName" placeholder="Adınız" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm outline-none focus:border-cyan-500">
+                <input type="text" id="mTitle" placeholder="Gördüyünüz işin adı" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm outline-none focus:border-cyan-500">
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="number" id="mPrice" placeholder="Qiymət" class="p-3 bg-black/40 rounded-xl border border-white/5 text-sm">
-                    <select id="mCat" class="bg-black/40 rounded-xl border border-white/5 text-sm text-zinc-400"><option>Dizayn</option><option>Kodlaşdırma</option><option>SMM</option></select>
+                    <input type="number" id="mPrice" placeholder="Qiymət (AZN)" class="p-3 bg-black/40 rounded-xl border border-white/5 text-sm outline-none focus:border-cyan-500">
+                    <select id="mCat" class="bg-black/40 rounded-xl border border-white/5 text-sm text-zinc-400 outline-none"><option>Dizayn</option><option>Kodlaşdırma</option><option>SMM</option><option>Video Montaj</option></select>
                 </div>
-                <input type="text" id="mPhone" placeholder="WhatsApp (994...)" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm">
-                <textarea id="mDesc" placeholder="Ətraflı..." class="w-full p-3 bg-black/40 rounded-xl border border-white/5 h-20 text-sm"></textarea>
-                <button onclick="submitM1Y()" class="w-full py-4 bg-cyan-600 rounded-xl font-bold uppercase text-[10px]">Paylaş</button>
-                <button onclick="document.getElementById('jobModal').style.display='none'" class="w-full text-zinc-500 text-[10px] pt-2">LƏĞV ET</button>
-                <p class="text-[9px] text-zinc-700 text-center">ID: <span id="displayMyID"></span></p>
+                <input type="text" id="mPhone" placeholder="WhatsApp (Məs: 99450XXXXXXX)" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm outline-none focus:border-cyan-500">
+                <textarea id="mDesc" placeholder="İşiniz haqqında qısa məlumat..." class="w-full p-3 bg-black/40 rounded-xl border border-white/5 h-20 text-sm outline-none focus:border-cyan-500"></textarea>
+                <button onclick="submitM1Y()" class="w-full py-4 bg-cyan-600 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-cyan-500 transition">Paylaşımı Təsdiqlə</button>
+                <button onclick="document.getElementById('jobModal').style.display='none'" class="w-full text-zinc-500 text-[10px] font-bold pt-2 uppercase tracking-tighter">Ləğv et</button>
+                <p class="text-[9px] text-zinc-700 text-center font-bold mt-4">SİZİN ID: <span id="displayMyID" class="text-zinc-500"></span></p>
             </div>
         </div>
     </div>
 
-    <footer class="py-10 text-center text-zinc-800 text-[10px] tracking-widest font-bold">
-        <span onclick="secretAdminTrigger()" class="cursor-pointer">© 2026 M1Y PLATFORM</span>
+    <footer class="py-10 text-center text-zinc-800 text-[10px] tracking-widest font-black">
+        <span onclick="secretAdminTrigger()" class="cursor-pointer hover:text-zinc-600 transition">© 2026 M1Y PLATFORM</span>
     </footer>
 
     <script>
