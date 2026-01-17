@@ -16,6 +16,7 @@
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getDatabase, ref, push, onValue, serverTimestamp, query as rQuery, limitToLast, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+        // Firebase tənzimləmələri (Olduğu kimi qalır)
         const firebaseConfig = {
             apiKey: "AIzaSyDkY51jHCvchXjlk0N005SaRcneCv_fWX0",
             authDomain: "timexbaku-a2c66.firebaseapp.com",
@@ -30,16 +31,17 @@
         const db = getFirestore(app);
         const rdb = getDatabase(app);
 
+        // İstifadəçi ID və Premium yoxlaması
         if (!localStorage.getItem('m1y_user_id')) {
             localStorage.setItem('m1y_user_id', 'M1Y-' + Math.random().toString(36).substr(2, 6).toUpperCase());
         }
         const myID = localStorage.getItem('m1y_user_id');
 
-        // VİP YOXLAMASI
         onSnapshot(doc(db, "m1y_vips", myID), (d) => {
             if (d.exists()) localStorage.setItem('m1y_premium', 'true');
         });
 
+        // Elanların yüklənməsi
         const jobGrid = document.getElementById('jobGrid');
         const qJobs = query(collection(db, "m1y_jobs"), orderBy("createdAt", "desc"));
 
@@ -69,7 +71,7 @@
             });
         });
 
-        // --- GLOBAL CHAT ---
+        // GLOBAL CHAT FUNKSİYALARI
         const chatRef = ref(rdb, 'm1y_global_chat');
         window.sendChatMessage = async function() {
             const msgInput = document.getElementById('chatInput');
@@ -95,7 +97,7 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         });
 
-        // --- ADMİN SİSTEMİ ---
+        // ADMİN SİSTEMİ
         window.openAdmin = async function() {
             const enteredPass = prompt("Admin Şifrəsi:");
             if (!enteredPass) return;
@@ -169,7 +171,7 @@
     <nav class="border-b border-white/5 py-6 bg-black/50 backdrop-blur-xl sticky top-0 z-50">
         <div class="container mx-auto px-6 flex justify-between items-center">
             <h1 class="text-2xl font-black italic tracking-tighter text-cyan-500">M1Y</h1>
-            <button onclick="document.getElementById('jobModal').style.display='flex'" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-cyan-500 hover:text-white transition">Elan Paylaş</button>
+            <button onclick="document.getElementById('jobModal').style.display='flex'" class="bg-white text-black px-6 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-cyan-500 transition">Elan Paylaş</button>
         </div>
     </nav>
 
@@ -190,24 +192,26 @@
     </section>
 
     <div id="adminPanel" class="modal">
-        <div class="bg-zinc-900 p-8 rounded-[2.5rem] w-full max-w-md border border-white/10">
-            <div class="flex justify-between items-center mb-6 text-xs font-black uppercase tracking-widest text-cyan-500">
-                Admin Terminal
-                <button onclick="document.getElementById('adminPanel').style.display='none'" class="text-white">✕</button>
+        <div class="bg-zinc-900 p-8 rounded-[2.5rem] w-full max-w-md border border-white/10 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-cyan-400 font-black uppercase text-xs">Admin Terminal</h2>
+                <button onclick="document.getElementById('adminPanel').style.display='none'" class="text-zinc-500">✕</button>
             </div>
-            <div class="mb-4 flex gap-2">
-                <input type="text" id="vipIDInput" placeholder="İstifadəçi ID" class="flex-1 p-3 bg-black/40 rounded-xl border border-white/5 text-xs outline-none">
-                <button onclick="makeVIP()" class="bg-cyan-500 text-black px-4 rounded-xl font-bold text-[10px]">OK</button>
+            <div class="mb-6 bg-black/30 p-4 rounded-2xl border border-white/5">
+                <input type="text" id="vipIDInput" placeholder="Müştəri ID" class="w-full p-3 bg-black/50 rounded-xl border border-white/5 text-[10px] mb-2 outline-none">
+                <button onclick="makeVIP()" class="w-full bg-cyan-500 text-black py-2 rounded-xl text-[10px] font-bold uppercase">VİP AKTİV ET</button>
             </div>
-            <div id="adminList" class="max-h-40 overflow-y-auto mb-4 custom-scrollbar"></div>
-            <div id="adminChatList" class="max-h-40 overflow-y-auto custom-scrollbar"></div>
+            <div class="max-h-72 overflow-y-auto">
+                <div id="adminList"></div>
+                <div id="adminChatList"></div>
+            </div>
         </div>
     </div>
 
     <div id="jobModal" class="modal">
         <div class="bg-zinc-900 p-8 rounded-[2.5rem] w-full max-w-md border border-white/10">
             <h2 class="text-xl font-black mb-6 text-cyan-500 italic uppercase">Yeni Elan</h2>
-            <div id="limitError" class="hidden mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] text-red-400 font-bold uppercase">Gündəlik limit dolub! VİP olun.</div>
+            <div id="limitError" class="hidden mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] text-red-400 font-bold uppercase">Limit dolub! VİP olun.</div>
             <div class="space-y-3">
                 <input type="text" id="mName" placeholder="Adınız" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm outline-none">
                 <input type="text" id="mTitle" placeholder="İş başlığı" class="w-full p-3 bg-black/40 rounded-xl border border-white/5 text-sm outline-none">
@@ -219,7 +223,7 @@
                 <textarea id="mDesc" placeholder="İş haqqında..." class="w-full p-3 bg-black/40 rounded-xl border border-white/5 h-20 text-sm outline-none"></textarea>
                 <button onclick="submitM1Y()" class="w-full py-4 bg-cyan-600 rounded-xl font-black uppercase text-[10px] tracking-widest">Paylaş</button>
                 <button onclick="document.getElementById('jobModal').style.display='none'" class="w-full text-zinc-500 text-[10px] mt-2 uppercase tracking-tighter">Ləğv et</button>
-                <p class="text-[9px] text-zinc-700 text-center mt-4 uppercase font-bold">SİZİN ID: <span id="displayMyID" class="text-zinc-500"></span></p>
+                <p class="text-[9px] text-zinc-700 text-center mt-4 uppercase">SİZİN ID: <span id="displayMyID"></span></p>
             </div>
         </div>
     </div>
